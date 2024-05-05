@@ -3,14 +3,71 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>My budget Tracker</title>
     <!--ACHTUNG - DAS GEHT NUR WEGEN VITE! IN "ECHT" KANN KEIN TS IM BROWSER AUSGEFÜHRT WERDEN -->
     <script defer type="module" src="/src/index.ts"></script>
+    <link rel="stylesheet" href="./src/styles/styles.css"/>
   </head>
 
   <body>
-    <img class="small-image" src="/jslogo.png" alt="JavaScript Logo" />
-    <label for="myInput">Type something:</label>
-    <input name="myInput" type="text" id="myInput" />
+      <h1>Budget Tracker</h1>
+    
+    <main>
+      <header>
+        <div>
+          <h5>Total Balance</h5>
+          <span id="balance">€0.00</span>
+        </div>
+        <div>
+          <h5>Income</h5>
+          <span id="income">€0.00</span>
+        </div>
+        <div>
+          <h5>Expense</h5>
+          <span id="expense">€0.00</span>
+        </div>
+      </header>
+
+      <section>
+        <h3>Transactions</h3>
+        <ul id="transactionList"></ul>
+        <div id="status"></div>
+      </section>
+      
+      <section>
+        <h3>Add Transaction</h3>
+        <form id="transactionForm">
+          <div>
+            <label for="type"></label>
+            <input type="checkbox" name="type" id="type" />
+            <div class="option">
+              <span>Expense</span>
+              <span>Income</span>
+            </div>
+          <div>
+            <label for="name">Name</label>
+            <input type="text" name="name" required />
+          </div>
+          <div>
+            <label for="amount">Amount</label>
+            <input 
+            type="number" 
+            name="amount" 
+            value="0" 
+            min="0.01"
+            step="0.01"
+            required
+            />
+          </div>
+          <div>
+            <label for="date">Date</label>
+            <input type="date" name="date" required />
+          </div>
+          <button type="submit">Submit</button>
+        </form>
+      </section>
+    </main>
+
+  <script src="script.js"></script>
   </body>
 </html>
