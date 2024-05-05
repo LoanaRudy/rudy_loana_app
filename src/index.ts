@@ -1,5 +1,7 @@
 // Imports use relative file paths or Node.js package names
 import { textInput } from './dom-utils';
+import axios from 'axios'
+
 // CSS IMPORT IN TS NUR ÜBER VITE MÖGLICH
 import './styles/styles.css';
 
@@ -16,34 +18,59 @@ type Transaction = {
     type: string,
 }
 
+interface exchangeRateData {
+    "data": {
+        "EUR": number,
+        "GBP": number,
+        "JPY": number,
+        "KRW": number,
+        "USD": number
+      }
+}
+
 const transactions: [Transaction] = JSON.parse(localStorage.getItem("transactions") || "''" );
 
-const formatter = new Intl.NumberFormat("en-DE", {
+var formatter = new Intl.NumberFormat("en-DE", {
   style: "currency",
   currency: "EUR",
   signDisplay: "always",
 });
 
-const list: HTMLElement = document.getElementById("transactionList") || new HTMLElement();
-const form: HTMLFormElement = document.getElementById("transactionForm") as HTMLFormElement || new HTMLFormElement();
-const status: HTMLElement = document.getElementById("status") || new HTMLElement();
-const balance: HTMLElement = document.getElementById("balance") || new HTMLElement();
-const income: HTMLElement = document.getElementById("income") || new HTMLElement();
-const expense: HTMLElement = document.getElementById("expense") || new HTMLElement();
+const list: HTMLElement = document.getElementById("transactionList") as HTMLElement;
+const form: HTMLFormElement = document.getElementById("transactionForm") as HTMLFormElement;
+const status: HTMLElement = document.getElementById("status") as HTMLElement;
+const balance: HTMLElement = document.getElementById("balance") as HTMLElement;
+const income: HTMLElement = document.getElementById("income") as HTMLElement;
+const expense: HTMLElement = document.getElementById("expense") as HTMLElement;
+const currencies: HTMLSelectElement = document.getElementById("currencies") as HTMLSelectElement;
+
+var selectedCurrency: string = "";
+var exchangeRate: number = 1;
+var exchangeRates = {
+    "EUR": 1,
+    "GBP": 1,
+    "JPY": 1,
+    "KRW": 1,
+    "USD": 1
+  }
 
 form.addEventListener("submit", addTransaction);
+currencies.addEventListener("change", currencySelected)
 
 function updateTotal() {
-  const incomeTotal = transactions
+
+    var incomeTotal = transactions
     .filter((trx) => trx.type === "income")
     .reduce((total, trx) => total + trx.amount, 0);
 
-  const expenseTotal = transactions
+  var expenseTotal = transactions
     .filter((trx) => trx.type === "expense")
     .reduce((total, trx) => total + trx.amount, 0);
 
-  const balanceTotal = incomeTotal - expenseTotal;
-
+  incomeTotal = incomeTotal * exchangeRate;
+  expenseTotal = expenseTotal * exchangeRate;
+  const balanceTotal = (incomeTotal - expenseTotal);
+  
   balance.textContent = formatter.format(balanceTotal).substring(1);
   income.textContent = formatter.format(incomeTotal);
   expense.textContent = formatter.format(expenseTotal * -1);
@@ -77,7 +104,7 @@ function renderList() {
       </div>
 
       <div class="amount ${type}">
-        <span>${formatter.format(amount * sign)}</span>
+        <span>${formatter.format(amount * exchangeRate * sign)}</span>
       </div>
     
       <div class="action">
@@ -90,9 +117,6 @@ function renderList() {
     list.appendChild(li);
   });
 }
-
-renderList();
-updateTotal();
 
 function deleteTransaction(id: number) {
   const index = transactions.findIndex((trx) => trx.id === id);
@@ -121,7 +145,7 @@ function addTransaction(e: Event) {
   transactions.push({
     id: currentID + 1,
     name: formData.get("name")!.toString(),
-    amount: parseFloat(formData.get("amount")!.toString()),
+    amount: parseFloat(formData.get("amount")!.toString()) / exchangeRate,
     date: new Date(formData.get("date")!.toString()),
     type: "on" === formData.get("type") ? "income" : "expense",
   });
@@ -138,3 +162,53 @@ function saveTransactions() {
 
   localStorage.setItem("transactions", JSON.stringify(transactions));
 }
+
+function determineExchangeRates() {
+    const apiUrl = 'https://api.freecurrencyapi.com/v1/latest?apikey=fca_live_QSZ5QoseFeyeyHGBfLbrsxuu4qJtGf5Bu74p2doj&currencies=EUR%2CUSD%2CGBP%2CKRW%2CJPY&base_currency=EUR';
+    
+    axios.get(apiUrl)
+    .then(response => {
+        exchangeRates = response.data.data;
+    })
+    .catch(error => {
+        console.log(error)
+    })
+}
+
+function currencySelected(e: Event) {
+
+    selectedCurrency = currencies.options[currencies.selectedIndex].value;
+
+    switch (selectedCurrency) {
+        case "EUR":
+            exchangeRate = exchangeRates.EUR;
+            break;
+        case "USD":
+            exchangeRate = exchangeRates.USD;
+            break;
+        case "GBP": 
+            exchangeRate = exchangeRates.GBP;
+            break;
+        case "KRW":
+            exchangeRate = exchangeRates.KRW;
+            break;
+        case "JPY":
+            exchangeRate = exchangeRates.JPY;
+            break;
+        default:
+            exchangeRate = 1;
+    }
+    
+    formatter = new Intl.NumberFormat("en-DE", {
+        style: "currency",
+        currency: selectedCurrency,
+        signDisplay: "always",
+    });
+
+    renderList();
+    updateTotal();
+}
+
+renderList();
+updateTotal();
+determineExchangeRates()
